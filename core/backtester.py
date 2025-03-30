@@ -15,6 +15,12 @@ class Backtester:
         self.price_data = price_data
 
     def run(self):
+        """
+        Runs the backtest.
+
+        Returns:
+            vbt.Portfolio: The backtest results or None if an error occurred.
+        """
         logger.info("Running generate_signals()")
         signals = self.strategy.generate_signals()
 
@@ -54,6 +60,13 @@ class Backtester:
             return None
 
     def save_results(self, portfolio, strategy_name: str):
+        """
+        Saves portfolio metrics and equity curve to results directory.
+
+        :param portfolio: VectorBT Portfolio object
+        :param strategy_name: name of the strategy
+        :return: None
+        """
         logger.info("Saving portfolio metrics and equity curve")
 
         if portfolio is None:
@@ -106,3 +119,24 @@ class Backtester:
             logger.info(f"Heatmap saved to {heatmap_path}")
         except Exception as e:
             logger.exception("Error saving heatmap")
+
+
+def run_strategy(strategy):
+    """Run backtest for a given strategy instance and save results."""
+    strategy_name = strategy.__class__.__name__
+
+    try:
+        logger.info(f"Starting backtest for {strategy_name}")
+
+        backtester = Backtester(strategy, strategy.price_data)
+        portfolio = backtester.run()
+
+        logger.info(f"Backtest completed for {strategy_name}, saving results")
+        backtester.save_results(portfolio, strategy_name.lower())
+        logger.info(f"Results saved successfully for {strategy_name}")
+
+    except Exception as e:
+        logger.error(
+            f"Error running backtest for {strategy_name}: {e}",
+            exc_info=True,
+        )

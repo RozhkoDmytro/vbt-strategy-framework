@@ -13,6 +13,23 @@ from strategies.sma_cross import SMACrossStrategy
 def test_sma_cross_generate_signals(
     request, price_data_fixture, fast_period, slow_period, expected_signals
 ):
+    """
+    Test the generate_signals method of the SMACrossStrategy class.
+
+    Verifies that the generated signals are correct and match the expected values.
+
+    Parameters
+    ----------
+    price_data_fixture : str
+        The name of the pytest fixture that contains the price data.
+    fast_period : int
+        The period for the fast moving average.
+    slow_period : int
+        The period for the slow moving average.
+    expected_signals : list
+        A list of expected signals (1 for buy, -1 for sell, 0 for hold).
+
+    """
     price_data = request.getfixturevalue(price_data_fixture)
     strategy = SMACrossStrategy(
         price_data=price_data, fast_period=fast_period, slow_period=slow_period

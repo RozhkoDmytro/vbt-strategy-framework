@@ -9,6 +9,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 @pytest.fixture
 def mock_price_data_no_signals():
+    """
+    A fixture that returns a DataFrame with sample price data for testing
+    trading strategies. The data is constant and does not generate any
+    trading signals.
+    """
     data = {
         ("TEST/BTC", "open"): [100.0, 100.0, 100.0, 100.0, 100.0],
         ("TEST/BTC", "high"): [100.5, 100.5, 100.5, 100.5, 100.5],
@@ -24,6 +29,17 @@ def mock_price_data_no_signals():
 
 @pytest.fixture
 def mock_price_data_entry_exit():
+    """
+    A fixture that returns a DataFrame with sample price data
+    that simulates entering and exiting trading signals.
+
+    The data includes open, high, low, close prices, and volume
+    for the trading pair "TEST/BTC" over a period of 5 minutes.
+
+    The DataFrame's index is a date range starting from "2025-01-01"
+    with a frequency of 1 minute.
+    """
+
     data = {
         ("TEST/BTC", "open"): [100.0, 101.0, 102.0, 99.0, 98.0],
         ("TEST/BTC", "high"): [100.5, 101.5, 102.5, 99.5, 98.5],
@@ -54,6 +70,17 @@ def mock_vwap_price_data_no_signals():
 
 @pytest.fixture
 def mock_vwap_price_data_entry_exit():
+    """
+    A fixture that returns a DataFrame with sample price data
+    for testing the VWAP reversion strategy. The data simulates
+    entering and exiting trading signals.
+
+    The data includes open, high, low, close prices, and volume
+    for the trading pair "TEST/BTC" over a period of 5 minutes.
+
+    The DataFrame's index is a date range starting from "2025-01-01"
+    with a frequency of 1 minute.
+    """
     data = {
         ("TEST/BTC", "open"): [100.0, 100.0, 95.0, 105.0, 100.0],
         ("TEST/BTC", "high"): [100.5, 100.5, 95.5, 105.5, 100.5],
@@ -69,6 +96,19 @@ def mock_vwap_price_data_entry_exit():
 
 @pytest.fixture
 def mock_price_data2():
+    """
+    A fixture that returns a DataFrame with sample price data for testing
+    trading strategies. The data includes open, high, low, close prices,
+    and volume for the trading pair "TEST/BTC" over a period of 5 minutes.
+
+    This data simulates a scenario with varying price levels, including
+    a significant drop at the third minute, which can be used to test
+    different trading strategy behaviors.
+
+    The DataFrame's index is a date range starting from "2025-01-01"
+    with a frequency of 1 minute.
+    """
+
     data = {
         ("TEST/BTC", "open"): [100.0, 99.0, 20.0, 92.0, 98.0],
         ("TEST/BTC", "high"): [100.5, 99.5, 20.5, 92.5, 98.5],
@@ -84,6 +124,17 @@ def mock_price_data2():
 
 @pytest.fixture
 def mock_price_data1():
+    """
+    A fixture that returns a DataFrame with sample price data for testing
+    trading strategies. The data includes open, high, low, close prices,
+    and volume for the trading pair "TEST/BTC" over a period of 5 minutes.
+
+    The prices are random and the volume is also random, but within a range
+    of 100 to 1000.
+
+    The DataFrame's index is a date range starting from "2025-01-01"
+    with a frequency of 1 minute.
+    """
     index = pd.date_range(start="2025-01-01", periods=5, freq="1min")
     columns = pd.MultiIndex.from_product(
         [["TEST/BTC"], ["open", "high", "low", "close", "volume"]],

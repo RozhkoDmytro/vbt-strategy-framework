@@ -1,75 +1,14 @@
-import os
 import logging
-from core.exchange_factory import ExchangeFactory
-from core.data_loader import DataLoader
-from core.backtester import Backtester
+from utils.utils import (
+    setup_logging,
+    initialize_exchange,
+    load_price_data,
+    setup_directories,
+)
+from core.backtester import run_strategy
 from config import config
-import pandas as pd
-
-
-def setup_logging():
-    """Ensure logs directory exists and configure logging."""
-    os.makedirs("logs", exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
-    )
-
 
 logger = logging.getLogger(__name__)
-
-
-def initialize_exchange():
-    """Initialize exchange instance."""
-    try:
-        exchange = ExchangeFactory.get_exchange(config.exchange_name)
-        logger.info(f"Initialized exchange: {config.exchange_name}")
-        return exchange
-    except ValueError as e:
-        logger.error(f"Failed to initialize exchange: {e}")
-        raise
-
-
-def load_price_data(exchange):
-    """Load price data from exchange."""
-    data_loader = DataLoader(exchange)
-    try:
-        price_data = data_loader.load_data()
-        logger.info(f"Data loaded successfully: {price_data.shape[1]} symbols")
-        return price_data
-    except ValueError as e:
-        logger.error(f"Failed to load data: {e}")
-        raise
-
-
-def setup_directories():
-    """Create required directories."""
-    os.makedirs(config.results_dir, exist_ok=True)
-    os.makedirs(f"{config.results_dir}/screenshots", exist_ok=True)
-    logger.info("Result directories created successfully")
-
-
-def run_strategy(strategy):
-    """Run backtest for a given strategy instance and save results."""
-    strategy_name = strategy.__class__.__name__
-
-    try:
-        logger.info(f"Starting backtest for {strategy_name}")
-
-        backtester = Backtester(strategy, strategy.price_data)
-        portfolio = backtester.run()
-
-        logger.info(f"Backtest completed for {strategy_name}, saving results")
-        backtester.save_results(portfolio, strategy_name.lower())
-        logger.info(f"Results saved successfully for {strategy_name}")
-
-    except Exception as e:
-        logger.error(
-            f"Error running backtest for {strategy_name}: {e}",
-            exc_info=True,
-        )
 
 
 def main():
@@ -80,7 +19,7 @@ def main():
         price_data = load_price_data(exchange)
         setup_directories()
 
-        # Instantiate strategies with price data (повні OHLCV для стратегій)
+        # Instantiate strategies with price data (full OHLCV for strategies)
         strategies = []
         for strategy_cls in config.strategies:
             if getattr(strategy_cls, "requires_ohlcv", False):

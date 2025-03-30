@@ -15,12 +15,40 @@ class DataLoader:
         self.data_path = os.path.join(config.data_dir, config.data_file)
 
     def _replace_infinite_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Replace infinite values in a DataFrame with NaN.
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame to clean
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with inf values replaced with NaN
+        """
         n_inf_before = np.isinf(df.values).sum()
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         logger.debug(f"[VALIDATION] Replaced {n_inf_before} inf values with NaN")
         return df
 
     def _fill_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Fill NaN values in a DataFrame with the value from the previous row.
+
+        This method works in-place.
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame to fill
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with NaN values filled with the previous row's value
+        """
         n_nan_before = df.isna().sum().sum()
         logger.debug(f"[VALIDATION] NaNs before filling: {n_nan_before}")
 
@@ -32,6 +60,23 @@ class DataLoader:
         return df
 
     def _filter_negative_close(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filter out rows with negative close values.
+
+        If the DataFrame has a MultiIndex column, select the "close" column and
+        filter out rows where the close value is negative. If the DataFrame has a
+        single-level column, select the "close" column directly.
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame to filter
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with negative close values removed
+        """
         before_filtering = df.shape[0]
 
         if isinstance(df.columns, pd.MultiIndex) and "ohlcv" in df.columns.names:
@@ -47,6 +92,20 @@ class DataLoader:
         return df
 
     def _final_checks(self, df: pd.DataFrame):
+        """
+        Perform final validation checks on the loaded data.
+
+        These checks ensure that the DataFrame has the correct shape and
+        structure, and that it contains the required columns.
+
+        Raises
+        ------
+        ValueError
+            If the DataFrame is empty, the index is not datetime, the DataFrame
+            contains missing values, the DataFrame does not have MultiIndex
+            columns, the column names are incorrect, or the DataFrame is missing
+            required OHLCV columns.
+        """
         if df.empty:
             raise ValueError("Loaded data is empty after filtering")
         if not pd.api.types.is_datetime64_any_dtype(df.index):
@@ -65,6 +124,28 @@ class DataLoader:
             raise ValueError(f"Missing OHLCV columns: {', '.join(missing_cols)}")
 
     def _validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Validate loaded data by applying filters and checks.
+
+        Performs the following validation steps:
+
+        1. Replaces infinite values with NaN.
+        2. Fills NaN values with the value from the previous row.
+        3. Filters out rows with negative close values.
+        4. Checks that the DataFrame is not empty, has a datetime index,
+           contains no missing values, has MultiIndex columns, and has the
+           correct column names and required OHLCV columns.
+
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame to validate
+
+        Returns
+        -------
+        pd.DataFrame
+            Validated DataFrame
+        """
         logger.info(f"[VALIDATION] Initial shape: {df.shape}")
 
         df = self._replace_infinite_values(df)
@@ -79,6 +160,25 @@ class DataLoader:
         return df
 
     def load_data(self) -> pd.DataFrame:
+        """
+        Load price data from the local cache or fetch from the exchange.
+
+        This method attempts to load price data from a cached file in Parquet format.
+        If the cached file does not exist or the data format is not Parquet, it fetches
+        the OHLCV data for the top trading pairs from the exchange, validates, and caches it.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the OHLCV data with a MultiIndex column structure,
+            where the first level is the trading pair and the second level is the OHLCV field.
+
+        Raises
+        ------
+        ValueError
+            If no valid data is fetched from the exchange.
+        """
+
         if os.path.exists(self.data_path) and config.data_format == "parquet":
             logger.info(f"Loading cached data from {self.data_path}")
             df = pq.read_table(self.data_path).to_pandas()

@@ -14,6 +14,30 @@ class VWAPReversionStrategy(StrategyBase):
         self.vwap_period = vwap_period
 
     def generate_signals(self) -> pd.DataFrame:
+        """
+        Generate trading signals based on VWAP reversion.
+
+        This method computes trading signals for each pair in the price data using
+        the Volume Weighted Average Price (VWAP) indicator. An entry signal (1)
+        is generated when the close price is less than 98% of the VWAP, indicating
+        a potential buy opportunity. An exit signal (-1) is generated when the close
+        price exceeds the VWAP, suggesting a potential sell opportunity. No signal (0)
+        is assigned otherwise.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame with the same index as the price data and a MultiIndex
+            column structure, with the first level as the trading pair and the
+            second level as "signal", containing the generated trading signals:
+            1 for entry, -1 for exit, and 0 for hold.
+
+        Raises
+        ------
+        ValueError
+            If the price_data does not have MultiIndex columns.
+        """
+
         if not isinstance(self.price_data.columns, pd.MultiIndex):
             raise ValueError("price_data must have MultiIndex columns")
 

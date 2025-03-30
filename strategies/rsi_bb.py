@@ -11,11 +11,40 @@ class RSIBBStrategy(StrategyBase):
     def __init__(
         self, price_data: pd.DataFrame, rsi_period: int = 14, bb_period: int = 20
     ):
+        """
+        Initialize the RSI-BB strategy.
+
+        Parameters
+        ----------
+        price_data : pd.DataFrame
+            The price data for all symbols.
+        rsi_period : int, optional
+            The period for the RSI indicator. Defaults to 14.
+        bb_period : int, optional
+            The period for the Bollinger Bands indicator. Defaults to 20.
+        """
         super().__init__(price_data)
         self.rsi_period = rsi_period
         self.bb_period = bb_period
 
     def generate_signals(self) -> pd.DataFrame:
+        """
+        Generate trading signals based on RSI and Bollinger Bands.
+
+        This method calculates trading signals for each symbol in the price data using
+        the Relative Strength Index (RSI) and Bollinger Bands indicators. A buy signal
+        (1) is generated when the RSI is below 30 and the price is below the lower
+        Bollinger Band, indicating a potential entry point. A sell signal (-1) is
+        generated when the RSI is above 70 and the price is above the upper Bollinger
+        Band, suggesting a potential exit point. No signal (0) is assigned otherwise.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame with the same index and columns as the price data, containing
+            the generated trading signals: 1 for buy, -1 for sell, and 0 for hold.
+        """
+
         signals = pd.DataFrame(
             index=self.price_data.index, columns=self.price_data.columns, data=0
         )

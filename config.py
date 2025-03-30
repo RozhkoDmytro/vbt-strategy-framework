@@ -10,7 +10,7 @@ class Config:
     # Exchange settings
     exchange_name: str = "binance"
     base_currency: str = "BTC"
-    num_pairs: int = 10
+    num_pairs: int = 100
     timeframe: str = "1m"
 
     # Data period
