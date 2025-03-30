@@ -1,16 +1,23 @@
-import pandas as pd
 import pytest
+import pandas as pd
 from core.backtester import Backtester
 from strategies.sma_cross import SMACrossStrategy
+from strategies.rsi_bb import RSIBBStrategy
+from strategies.vwap_reversion import VWAPReversionStrategy
+import os
 
 
-def test_backtester_run():
-    """Test backtester execution."""
-    data = pd.DataFrame(
-        {"close": [10, 11, 12, 13, 12, 11]},
-        index=pd.date_range("2025-02-01", periods=6, freq="1min"),
-    )
-    strategy = SMACrossStrategy(data)
-    backtester = Backtester(strategy, data)
+@pytest.mark.parametrize(
+    "strategy_class", [SMACrossStrategy, RSIBBStrategy, VWAPReversionStrategy]
+)
+def test_backtester_run(mock_price_data1, strategy_class):
+
+    strategy = strategy_class(mock_price_data1)
+
+    backtester = Backtester(strategy, mock_price_data1[("TEST/BTC", "close")])
+
     portfolio = backtester.run()
-    assert portfolio.total_return().iloc[0] is not None
+
+    assert portfolio is not None
+    assert portfolio.stats() is not None
+    assert portfolio.value() is not None
