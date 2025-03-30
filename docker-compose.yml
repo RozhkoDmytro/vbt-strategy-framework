@@ -1,0 +1,10 @@
+services:
+  backtester:
+    build: .
+    volumes:
+      - .:/app # повний проєкт
+      - ./results:/app/results # результативні файли
+      - ./data:/app/data # кешовані .parquet файли
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python main.py

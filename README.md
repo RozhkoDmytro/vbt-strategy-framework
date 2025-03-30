@@ -1,88 +1,181 @@
 # VBTTrader
 
-## Overview
-VBTTrader is a modular backtesting framework for trading strategies built with Python and VectorBT. It analyzes 1-minute OHLCV data for 100 BTC trading pairs from Binance for February 2025. The project emphasizes scalability, clean code, and comprehensive documentation, making it easy to extend with new strategies, exchanges, or timeframes.
+## Project Overview
+VBTTrader is a crypto trading strategy backtesting framework. It analyzes historical data, generates performance metrics, and supports modular strategy development. Ideal for evaluating crypto trading strategies using Python and VectorBT.
 
-## Features
-- **Data Handling**: Fetches and caches 1-minute OHLCV data from Binance in `.parquet` format.
-- **Trading Strategies**: Includes SMA Crossover, RSI with Bollinger Bands, and VWAP Reversion strategies.
-- **Backtesting**: Powered by VectorBT with commission and slippage considerations.
-- **Results**: Generates equity curves, performance metrics, and heatmaps.
+## Running Instructions
 
-## Installation
-1. **Clone the repository**:
-```bash
-git clone https://github.com/RozhkoDmytro/vbt-strategy-framework
-cd VBTTrader
-```
+### Normal Execution
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/RozhkoDmytro/vbt-strategy-framework
+   cd vbt-strategy-framework
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the project:
+   ```bash
+   python main.py
+   ```
 
-2. **Set up a virtual environment**:
-```bash
-python3 -m venv vbt_env
-source vbt_env/bin/activate  # On macOS/Linux
-# vbt_env\Scripts\activate  # On Windows
-```
+### Docker Execution
+1. Build the Docker image:
+   ```bash
+	docker-compose down
+	docker-compose build --no-cache
+	docker-compose up --build
+   ```
 
-3. **Install dependencies**:
-```bash
-pip install -r requirements.txt
-```
+## Strategy Performance Summary (by Dmytro Rozhko)
 
-## Usage
-1. **Run the backtest**:
-```bash
-python main.py
-```
+![Strategy Comparison](results/screenshots/strategy_comparison_total_return.png)
 
-2. **Check results**:
-- Metrics are saved in `results/metrics.csv`.
-- Equity curve plots are saved in `results/screenshots/<strategy_name>_equity.png`.
 
-## Configuration
-Settings are managed in `config.py`:
-- `DATA_SOURCE`: Supports "binance" or "csv".
-- `START_DATE`, `END_DATE`: Backtest period.
-- `SYMBOLS`: List of trading pairs.
-- `DATA_PATH`: Path to cache data.
+This chart presents a comparison of the **Total Return [%]** for each trading strategy tested during the backtest period.
 
-## Strategies
-- **SMACrossStrategy**: Triggers trades based on the crossover of fast (10-period) and slow (50-period) moving averages.
-- **RSIBBStrategy**: (Placeholder) RSI < 30 with confirmation from a bounce off the lower Bollinger Band.
-- **VWAPReversionStrategy**: (Placeholder) Opens when price deviates 2% below VWAP and exits on reversion.
+### 🔍 Interpretation of Results:
 
-## Project Structure
-```
-VBTTrader/
-├── core/               # Core modules
-│   ├── data_loader.py
-│   ├── backtester.py
-│   ├── exchange.py (interface)
-│   └── metrics.py
-├── strategies/         # Trading strategies
-│   ├── base.py
-│   ├── sma_cross.py
-│   ├── rsi_bb.py
-│   └── vwap_reversion.py
-├── tests/              # Unit tests
-├── data/               # Cached data
-├── results/            # Backtest outputs
-│   └── screenshots/    # Equity curve plots
-├── config.py
-├── main.py
-├── requirements.txt
-└── README.md
-```
+- **Y-axis**: Strategy names  (`SMACrossStrategy`, `RSIBBStrategy`, `VWAPReversionStrategy`)
+- **X-axis**: Total return percentage (`Total Return [%]`)
+
+A longer bar to the **left** indicates a **larger loss**.  
+Positive values to the **right** would indicate profit (none in this case).
+
+### 📊 Observations:
+
+- `SMACrossStrategy` performed the worst, with a return of approximately **-7.5%**.
+- `RSIBBStrategy` showed **moderate losses**, around **-2%**.
+- `VWAPReversionStrategy` was the **least unprofitable**, returning approximately **-0.2%**, i.e., almost breakeven.
+
+### ✅ Conclusion:
+
+The `VWAPReversionStrategy` is currently the **most stable** among the three, even though it didn't produce profit.
+
+The other strategies may require **further optimization or filters** due to significant drawdowns.
+
+Or... maybe I made a mistake somewhere. 🙂
+
+
+
+## Strategy Descriptions
+
+### SMACrossStrategy
+- **Logic**: 10-period vs. 50-period SMA crossover.
+- **Buy**: Fast SMA crosses above slow SMA.
+- **Sell**: Fast SMA crosses below slow SMA.
+
+### RSIBBStrategy
+- **Logic**: Combines RSI and Bollinger Bands.
+- **Buy**: RSI < 30 and price bounces off lower BB.
+- **Sell**: Optional based on user config.
+
+### VWAPReversionStrategy
+- **Logic**: Mean reversion using VWAP.
+- **Buy**: Price falls 2% below VWAP.
+- **Sell**: Price returns to VWAP.
+
+## Conclusions and Performance
+- **VWAPReversionStrategy**: Best performance, near 0% or slightly positive.
+- **SMACrossStrategy**: ~ -1% return.
+- **RSIBBStrategy**: ~ -2% return.
+- **Image**: `results/screenshots/strategy_comparison_total_return.png` shows performance comparison.
+
+## Project Context and Structure
+
+### Main Directories and Files
+| Path               | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `core/`            | Data loader, backtester, exchange, metrics. |
+| `core/exchanges`   | Exchange classs (Binance, ect).             |
+| `strategies/`      | Strategy classes (SMA, RSI+BB, VWAP).       |
+| `tests/`           | Unit tests.                                 |
+| `data/`            | Cached OHLCV data.                          |
+| `utils/`           | Utils, helped methods.                      |
+| `results/`         | Backtest results and screenshots.           |
+| `config.py`        | Strategy and environment config.            |
+| `main.py`          | Entry script.                               |
+| `requirements.txt` | Dependency list.                            |
+
+## Programming Patterns and Design
+- **Modular Design**: Separated by roles (strategies, core, tests).
+- **OOP**: Strategy inheritance from base class.
+- **Data Handling**: Efficient loading from Binance.
+- **Backtesting**: Realistic with slippage and fees.
+- **Visualization**: Equity curves, bar charts.
+- **Strategy Pattern**: Each trading algorithm (SMA, RSI+BB, VWAP) and exchange algoritm is implemented as a separate class, inheriting from a base strategy. This allows easy swapping or adding of strategies.
+- **Factory Pattern (Simple Form)**: The framework can dynamically instantiate strategies based on config settings, acting like a simple factory.
+- **Interface Pattern (via Base Strategy Class)**:The BaseStrategy class defines the required methods like generate_signals(), run_backtest(), etc., which must be implemented in all concrete strategies.
+
+
+## Makefile Targets (if present)
+| Target         | Description              |
+| -------------- | ------------------------ |
+| `run`          | Run main.py.             |
+| `pytest`       | Run tests.               |
+| `clean`        | Remove temp/cache files. |
+| `rebuild`      | Build (rebuild) Docker image.|
+
+
+## Configuration (`config.py`)
+
+The configuration is handled via a `Config` dataclass, providing centralized and dynamic control over exchange, data, and backtesting settings.
+
+### Exchange Settings
+- **exchange_name**: `"binance"`
+- **base_currency**: `"BTC"`
+- **num_pairs**: `100` (Top BTC pairs)
+- **timeframe**: `"1m"`
+
+### Data Period
+- **start_date**: `"2025-02-01"`
+- **end_date**: `"2025-02-28"`
+
+### Backtest Parameters
+- **commission**: `0.001` (0.1%)
+- **slippage**: `0.0005` (0.05%)
+
+### Paths and File Format
+- **data_dir**: `"data/"`
+- **results_dir**: `"results/"`
+- **data_format**: `"parquet"`
+- **data_file_template**:
+  `"{base_currency}_{timeframe}_{start_date}_{end_date}_{num_pairs}.{data_format}"`
+- **data_file**: Automatically generated based on the above template with cleaned date strings.
+
+### Strategies
+Initialized by default in `__post_init__`:
+- `SMACrossStrategy`
+- `RSIBBStrategy`
+- `VWAPReversionStrategy`
+
+### Supported Exchanges
+Defined dynamically:
+- `"binance"` → `BinanceExchange`
+
+This configuration enables easy customization and ensures the framework is flexible and extendable.
 
 ## Requirements
-- Python ≥ 3.10
-- Dependencies: `vectorbt`, `pandas`, `numpy`, `plotly`, `pyarrow`, `ccxt`, `pytest`
 
-## Notes
-- If Binance data is unavailable, switch to CSV mode via `config.py`.
-- Easily extend the framework by adding new strategies or data sources.
+- Python ≥ 3.10  
+- Dependencies:  
+  - `vectorbt` – fast backtesting and analysis  
+  - `pandas`, `numpy` – data processing and numerical operations  
+  - `pyarrow` – efficient I/O for `.parquet` historical data  
+  - `ta==0.11.0` – technical indicators (SMA, RSI, BB, etc.)  
+  - `ccxt` – market data and trading API for crypto exchanges  
+  - `matplotlib` – plotting (equity curves, heatmaps, comparisons)  
+  - `pytest` – unit testing
+
 
 ## License
 This project is unlicensed for now. Feel free to use and modify it as needed.
 
+## Citations
+- [GitHub Repository](https://github.com/RozhkoDmytro/vbt-strategy-framework)
+- TrendSpider Learning Center (SMA, RSI, VWAP)
+
 ## Contact
 For questions or contributions, open an issue on GitHub.
+
