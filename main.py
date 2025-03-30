@@ -1,50 +1,81 @@
 import os
+import logging
+from core.exchange_factory import ExchangeFactory
 from core.data_loader import DataLoader
 from core.backtester import Backtester
-from core.exchange import BinanceExchange
-from strategies.sma_cross import SMACrossStrategy
-from strategies.rsi_bb import RSIBBStrategy
-from strategies.vwap_reversion import VWAPReversionStrategy
 from config import config
 
+logger = logging.getLogger(__name__)
 
-def get_exchange(exchange_name: str) -> BinanceExchange:
-    """Initialize exchange based on config."""
-    if exchange_name.lower() == "binance":
-        return BinanceExchange()
-    else:
-        raise ValueError(f"Unsupported exchange: {exchange_name}")
+
+def initialize_exchange():
+    """Initialize exchange instance."""
+    try:
+        exchange = ExchangeFactory.get_exchange(config.exchange_name)
+        logger.info(f"Initialized exchange: {config.exchange_name}")
+        return exchange
+    except ValueError as e:
+        logger.error(f"Failed to initialize exchange: {e}")
+        raise
+
+
+def load_price_data(exchange):
+    """Load price data from exchange."""
+    data_loader = DataLoader(exchange)
+    try:
+        price_data = data_loader.load_data()
+        logger.info("Data loaded successfully")
+        return price_data
+    except ValueError as e:
+        logger.error(f"Failed to load data: {e}")
+        raise
+
+
+def setup_directories():
+    """Create required directories."""
+    os.makedirs(config.results_dir, exist_ok=True)
+    os.makedirs(f"{config.results_dir}/screenshots", exist_ok=True)
+    logger.info("Result directories created successfully")
+
+
+def run_strategy(strategy):
+    """Run backtest for a single strategy and save results."""
+    strategy_name = strategy.__class__.__name__
+    try:
+        logger.info(f"Starting backtest for {strategy_name}")
+
+        backtester = Backtester(strategy, strategy.price_data)
+        portfolio = backtester.run()
+
+        logger.info(f"Backtest completed for {strategy_name}, saving results")
+        backtester.save_results(portfolio, strategy_name.lower())
+
+        logger.info(f"Results saved successfully for {strategy_name}")
+
+    except Exception as e:
+        logger.error(
+            f"Error running backtest for {strategy_name}: {e}",
+            exc_info=True,
+        )
 
 
 def main():
-    # Initialize exchange from config.exchange_name
-    exchange = get_exchange(config.exchange_name)
-    data_loader = DataLoader(exchange)
-
-    # Load data with validation
+    """Run the backtesting framework."""
     try:
-        price_data = data_loader.load_data()
-    except ValueError as e:
-        print(f"Failed to load data: {e}")
-        return
+        exchange = initialize_exchange()
+        price_data = load_price_data(exchange)
+        setup_directories()
 
-    # Define strategies
-    strategies = [
-        SMACrossStrategy(price_data),
-        RSIBBStrategy(price_data),
-        VWAPReversionStrategy(price_data),
-    ]
+        # Instantiate strategies with price data
+        strategies = [strategy(price_data) for strategy in config.strategies]
 
-    # Run backtests
-    os.makedirs(config.results_dir, exist_ok=True)
-    os.makedirs(f"{config.results_dir}/screenshots", exist_ok=True)
+        for strategy in strategies:
+            run_strategy(strategy)
 
-    for strategy in strategies:
-        backtester = Backtester(strategy, price_data)
-        portfolio = backtester.run()
-        strategy_name = strategy.__class__.__name__.lower()
-        backtester.save_results(portfolio, strategy_name)
-        print(f"Results for {strategy_name} saved.")
+    except Exception as e:
+        logger.error(
+            f"Backtesting framework terminated due to an error: {e}", exc_info=True
+        )
 
 
 if __name__ == "__main__":

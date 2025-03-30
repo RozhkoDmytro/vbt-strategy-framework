@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 import vectorbt as vbt
-from ..core.metrics import calculate_metrics
+from core.metrics import calculate_metrics
 
 
 class StrategyBase(ABC):

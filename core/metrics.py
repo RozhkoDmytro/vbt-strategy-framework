@@ -2,12 +2,13 @@ import vectorbt as vbt
 
 
 def calculate_metrics(portfolio: vbt.Portfolio) -> dict:
-    """Calculate key backtest metrics."""
+    stats = portfolio.stats(agg_func=None)
+
     return {
-        "total_return": portfolio.total_return().iloc[0],
-        "sharpe_ratio": portfolio.sharpe_ratio().iloc[0],
-        "max_drawdown": portfolio.max_drawdown().iloc[0],
-        "win_rate": portfolio.win_rate().iloc[0],
-        "expectancy": portfolio.expectancy().iloc[0],
-        "exposure_time": portfolio.positions().coverage().iloc[0],
+        "total_return": stats["Total Return [%]"].mean(),
+        "sharpe_ratio": stats["Sharpe Ratio"].mean(),
+        "max_drawdown": stats["Max Drawdown [%]"].mean(),
+        "win_rate": portfolio.trades.win_rate().mean(),
+        "expectancy": portfolio.trades.expectancy().mean(),
+        "exposure_time": stats["Max Gross Exposure [%]"].mean(),  # correct column name
     }

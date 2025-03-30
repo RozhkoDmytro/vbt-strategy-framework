@@ -1,6 +1,6 @@
 import pandas as pd
 import vectorbt as vbt
-from .base import StrategyBase
+from strategies.base import StrategyBase
 
 
 class SMACrossStrategy(StrategyBase):

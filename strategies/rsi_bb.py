@@ -1,6 +1,6 @@
 import pandas as pd
 import vectorbt as vbt
-from .base import StrategyBase
+from strategies.base import StrategyBase
 
 
 class RSIBBStrategy(StrategyBase):
@@ -13,8 +13,17 @@ class RSIBBStrategy(StrategyBase):
 
     def generate_signals(self) -> pd.DataFrame:
         """Generate signals based on RSI and Bollinger Bands."""
-        rsi = vbt.RSI.run(self.price_data, window=self.rsi_period)
-        bb = vbt.BBANDS.run(self.price_data, window=self.bb_period)
-        entries = (rsi.rsi < 30) & (self.price_data > bb.lower)
-        exits = rsi.rsi > 70
+
+        close = self.price_data.xs("close", level="ohlcv", axis=1).iloc[:, 0]
+
+        bb_indicator = vbt.BBANDS.run(close)
+        rsi_indicator = vbt.RSI.run(close)
+
+        entries = (rsi_indicator.rsi < 30) & (close < bb_indicator.lower)
+        exits = (rsi_indicator.rsi > 70) | (close > bb_indicator.upper)
+
+        signals = pd.DataFrame(0, index=close.index, columns=["signal"])
+        signals.loc[entries, "signal"] = 1
+        signals.loc[exits, "signal"] = -1
+
         return entries.astype(int) - exits.astype(int)
