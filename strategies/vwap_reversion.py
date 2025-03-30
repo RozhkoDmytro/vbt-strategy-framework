@@ -1,44 +1,26 @@
 import pandas as pd
+import vectorbt as vbt
 import ta
-import logging
 from strategies.base import StrategyBase
-
-logger = logging.getLogger(__name__)
 
 
 class VWAPReversionStrategy(StrategyBase):
-    def __init__(self, price_data: pd.DataFrame):
+    def __init__(self, price_data: pd.DataFrame, vwap_period: int = 20):
         super().__init__(price_data)
+        self.vwap_period = vwap_period
 
     def generate_signals(self) -> pd.DataFrame:
-        close = self.price_data.xs("close", level="ohlcv", axis=1).iloc[:, 0]
-        high = self.price_data.xs("high", level="ohlcv", axis=1).iloc[:, 0]
-        low = self.price_data.xs("low", level="ohlcv", axis=1).iloc[:, 0]
-        volume = self.price_data.xs("volume", level="ohlcv", axis=1).iloc[:, 0]
-
-        vwap_indicator = ta.volume.VolumeWeightedAveragePrice(
-            high=high, low=low, close=close, volume=volume
-        )
-        vwap = vwap_indicator.volume_weighted_average_price()
-
-        entries = close < vwap * 0.98
-        exits = close > vwap
-
-        logger.debug(f"VWAP head:\n{vwap.head()}")
-        logger.debug(f"Entries: {entries.sum()}, Exits: {exits.sum()}")
-
-        debug_df = pd.DataFrame(
-            {
-                "close": close,
-                "vwap": vwap,
-                "entry": entries.astype(int),
-                "exit": exits.astype(int),
-            }
-        )
-        debug_df.to_csv("logs/vwap_debug.csv")
-
-        signals = pd.DataFrame(0, index=close.index, columns=["signal"])
+        vwap = ta.volume.VolumeWeightedAveragePrice(
+            high=self.price_data["high"],
+            low=self.price_data["low"],
+            close=self.price_data["close"],
+            volume=self.price_data["volume"],
+            window=self.vwap_period,
+        ).volume_weighted_average_price()
+        entries = self.price_data["close"] < vwap * 0.98
+        exits = self.price_data["close"] > vwap
+        signals = pd.DataFrame(index=self.price_data.index)
+        signals["signal"] = 0
         signals.loc[entries, "signal"] = 1
         signals.loc[exits, "signal"] = -1
-
         return signals

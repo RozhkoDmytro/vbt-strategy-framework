@@ -1,53 +1,25 @@
 import pandas as pd
 import vectorbt as vbt
-import logging
+import ta
 from strategies.base import StrategyBase
-
-logger = logging.getLogger(__name__)
 
 
 class RSIBBStrategy(StrategyBase):
     def __init__(
-        self,
-        price_data: pd.DataFrame,
-        rsi_window: int = 14,
-        bb_window: int = 20,
-        bb_std: float = 2.0,
+        self, price_data: pd.DataFrame, rsi_period: int = 14, bb_period: int = 20
     ):
         super().__init__(price_data)
-        self.rsi_window = rsi_window
-        self.bb_window = bb_window
-        self.bb_std = bb_std
+        self.rsi_period = rsi_period
+        self.bb_period = bb_period
 
     def generate_signals(self) -> pd.DataFrame:
-        close = self.price_data.xs("close", level="ohlcv", axis=1).iloc[:, 0]
-        rsi = vbt.RSI.run(close, window=self.rsi_window).rsi
-        bb = vbt.BBANDS.run(
-            close, window=self.bb_window, std=self.bb_std, input_names=["close"]
-        )
-
-        entries = (rsi < 30) & (close < bb.lower)
-        exits = (rsi > 70) & (close > bb.upper)
-
-        logger.debug(f"RSI head:\n{rsi.head()}")
-        logger.debug(f"BB Lower head:\n{bb.lower.head()}")
-        logger.debug(f"BB Upper head:\n{bb.upper.head()}")
-        logger.debug(f"RSI Entries: {entries.sum()}, Exits: {exits.sum()}")
-
-        debug_df = pd.DataFrame(
-            {
-                "close": close,
-                "rsi": rsi,
-                "bb_lower": bb.lower,
-                "bb_upper": bb.upper,
-                "entry": entries.astype(int),
-                "exit": exits.astype(int),
-            }
-        )
-        debug_df.to_csv("logs/rsi_bb_debug.csv")
-
-        signals = pd.DataFrame(0, index=close.index, columns=["signal"])
+        close_data = self.price_data["close"]
+        rsi = ta.momentum.RSIIndicator(close_data, window=self.rsi_period).rsi()
+        bb = ta.volatility.BollingerBands(close_data, window=self.bb_period)
+        entries = (rsi < 30) & (close_data < bb.bollinger_lband())
+        exits = (rsi > 70) & (close_data > bb.bollinger_hband())
+        signals = pd.DataFrame(index=self.price_data.index)
+        signals["signal"] = 0
         signals.loc[entries, "signal"] = 1
         signals.loc[exits, "signal"] = -1
-
         return signals

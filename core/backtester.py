@@ -2,13 +2,15 @@ import os
 import logging
 import pandas as pd
 import vectorbt as vbt
+import matplotlib.pyplot as plt
 from core.metrics import calculate_metrics
+from config import config
 
 logger = logging.getLogger(__name__)
 
 
 class Backtester:
-    def __init__(self, strategy, price_data):
+    def __init__(self, strategy, price_data: pd.Series):
         self.strategy = strategy
         self.price_data = price_data
 
@@ -34,11 +36,12 @@ class Backtester:
 
         logger.debug("Running portfolio simulation via VectorBT")
         portfolio = vbt.Portfolio.from_signals(
-            close=self.price_data.xs("close", level="ohlcv", axis=1).iloc[:, 0],
+            close=self.price_data,
             entries=signals["signal"] == 1,
             exits=signals["signal"] == -1,
             fees=0.001,
             slippage=0.001,
+            freq=config.timeframe,
         )
 
         logger.debug("Portfolio simulation completed")
@@ -66,9 +69,17 @@ class Backtester:
         logger.debug(f"Metrics saved to {metrics_path}")
 
         try:
-            fig = portfolio.plot()
+            # Використовуємо matplotlib для equity curve
+            plt.figure(figsize=(10, 6))
+            plt.plot(portfolio.value(), label="Equity", color="blue")
+            plt.title(f"Equity Curve - {strategy_name}")
+            plt.xlabel("Time")
+            plt.ylabel("Equity")
+            plt.legend()
+            plt.grid(True)
             os.makedirs("results/screenshots", exist_ok=True)
-            fig.write_image(f"results/screenshots/{strategy_name}_equity.png")
+            plt.savefig(f"results/screenshots/{strategy_name}_equity.png")
+            plt.close()
             logger.debug(f"Equity curve saved for {strategy_name}")
         except Exception as e:
             logger.exception(f"Error saving equity curve: {e}")
