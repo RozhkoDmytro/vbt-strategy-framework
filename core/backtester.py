@@ -5,11 +5,13 @@ import vectorbt as vbt
 import matplotlib.pyplot as plt
 from core.metrics import calculate_metrics
 from config import config
+import glob
 
 logger = logging.getLogger(__name__)
 
 
 class Backtester:
+
     def __init__(self, strategy, price_data: pd.DataFrame):
         self.strategy = strategy
         self.price_data = price_data
@@ -68,32 +70,29 @@ class Backtester:
             return None
 
     def save_results(self, portfolio, strategy_name: str):
-        """
-        Saves portfolio metrics and equity curve to results directory.
-
-        :param portfolio: VectorBT Portfolio object
-        :param strategy_name: name of the strategy
-        :return: None
-        """
-        logger.info("Saving portfolio metrics and equity curve")
-
+        """Main method to save all result artifacts."""
         if portfolio is None:
             logger.warning("No portfolio to save results for")
             return
 
-        # Save metrics
+        logger.info("Saving portfolio metrics and equity curve")
+        self._save_metrics(portfolio, strategy_name)
+        self._save_equity_curve(portfolio, strategy_name)
+        self._save_heatmap(portfolio, strategy_name)
+
+    def _save_metrics(self, portfolio, strategy_name: str):
+        """Calculate and save portfolio metrics as CSV."""
         try:
-            logger.debug("Portfolio stats calculated")
             metrics = calculate_metrics(portfolio)
             os.makedirs("results", exist_ok=True)
-            metrics_path = f"results/{strategy_name}_metrics.csv"
-            metrics.to_csv(metrics_path)
-            logger.info(f"Metrics saved to {metrics_path}")
-        except Exception as e:
+            path = f"results/{strategy_name}_metrics.csv"
+            metrics.to_csv(path)
+            logger.info(f"Metrics saved to {path}")
+        except Exception:
             logger.exception("Error calculating or saving metrics")
-            return
 
-        # Save equity curve
+    def _save_equity_curve(self, portfolio, strategy_name: str):
+        """Plot and save equity curve as PNG."""
         try:
             total_equity = portfolio.value().sum(axis=1)
             plt.figure(figsize=(10, 6))
@@ -104,14 +103,15 @@ class Backtester:
             plt.legend()
             plt.grid(True)
             os.makedirs("results/screenshots", exist_ok=True)
-            equity_path = f"results/screenshots/{strategy_name}_equity.png"
-            plt.savefig(equity_path)
+            path = f"results/screenshots/{strategy_name}_equity.png"
+            plt.savefig(path)
             plt.close()
-            logger.info(f"Equity curve saved to {equity_path}")
-        except Exception as e:
+            logger.info(f"Equity curve saved to {path}")
+        except Exception:
             logger.exception("Error saving equity curve")
 
-        # Save return heatmap
+    def _save_heatmap(self, portfolio, strategy_name: str):
+        """Plot and save total return per symbol as heatmap (bar plot)."""
         try:
             total_return = portfolio.total_return()
             fig, ax = plt.subplots(figsize=(12, 6))
@@ -121,12 +121,91 @@ class Backtester:
             ax.set_ylabel("Return (%)")
             ax.grid(True)
             plt.tight_layout()
-            heatmap_path = f"results/screenshots/{strategy_name}_heatmap.png"
-            plt.savefig(heatmap_path)
+            path = f"results/screenshots/{strategy_name}_heatmap.png"
+            plt.savefig(path)
             plt.close()
-            logger.info(f"Heatmap saved to {heatmap_path}")
-        except Exception as e:
+            logger.info(f"Heatmap saved to {path}")
+        except Exception:
             logger.exception("Error saving heatmap")
+
+    @classmethod
+    def compare_strategies_metrics(
+        cls, results_dir="results", output_file="strategy_comparison.csv"
+    ):
+        """
+        Load, compare, and visualize strategy metrics.
+        """
+        logger.info("Comparing strategy metrics...")
+        metrics_dfs = cls._load_all_metrics(results_dir)
+        if metrics_dfs.empty:
+            logger.warning("No metrics found for comparison.")
+            return pd.DataFrame()
+
+        cls._save_combined_metrics(metrics_dfs, results_dir, output_file)
+        cls._plot_total_return(metrics_dfs, results_dir)
+
+        return metrics_dfs
+
+    @staticmethod
+    def _load_all_metrics(results_dir: str) -> pd.DataFrame:
+        """
+        Load all *_metrics.csv files from directory.
+        """
+        metrics_files = glob.glob(os.path.join(results_dir, "*_metrics.csv"))
+        all_metrics = []
+
+        for file in metrics_files:
+            try:
+                strategy_name = os.path.basename(file).replace("_metrics.csv", "")
+                df = pd.read_csv(file, index_col=0)
+                df["strategy"] = strategy_name
+                all_metrics.append(df)
+            except Exception as e:
+                logger.warning(f"Failed to read metrics from {file}: {e}")
+
+        if all_metrics:
+            combined = pd.concat(all_metrics)
+            return combined.set_index("strategy")
+        return pd.DataFrame()
+
+    @staticmethod
+    def _save_combined_metrics(df: pd.DataFrame, results_dir: str, output_file: str):
+        """
+        Save combined metrics table to CSV.
+        """
+        os.makedirs(results_dir, exist_ok=True)
+        output_path = os.path.join(results_dir, output_file)
+        df.to_csv(output_path)
+        logger.info(f"Strategy comparison saved to {output_path}")
+
+    @staticmethod
+    def _plot_total_return(df: pd.DataFrame, results_dir: str):
+        """
+        Plot Total Return for each strategy and save as PNG.
+        """
+        try:
+            plot_path = os.path.join(
+                results_dir, "screenshots", "strategy_comparison_total_return.png"
+            )
+            os.makedirs(os.path.dirname(plot_path), exist_ok=True)
+
+            # Ensure index is clean and proper column exists
+            df = df.reset_index()
+            df = df[["strategy", "Total Return [%]"]].dropna()
+
+            # Sort values for plotting
+            df = df.sort_values("Total Return [%]")
+
+            plt.figure(figsize=(10, 6))
+            plt.barh(df["strategy"], df["Total Return [%]"], color="skyblue")
+            plt.title("Total Return Comparison by Strategy")
+            plt.xlabel("Total Return [%]")
+            plt.tight_layout()
+            plt.savefig(plot_path)
+            plt.close()
+            logger.info(f"Comparison chart saved to {plot_path}")
+        except Exception as e:
+            logger.warning(f"Failed to generate comparison chart: {e}")
 
 
 def run_strategy(strategy):

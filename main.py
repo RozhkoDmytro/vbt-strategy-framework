@@ -7,6 +7,7 @@ from utils.utils import (
 )
 from core.backtester import run_strategy
 from config import config
+from core.backtester import Backtester
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,9 @@ def main():
 
         for strategy in strategies:
             run_strategy(strategy)
+
+        # Compare strategies
+        Backtester.compare_strategies_metrics()
 
     except Exception as e:
         logger.error(

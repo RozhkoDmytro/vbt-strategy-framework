@@ -23,15 +23,24 @@ def calculate_metrics(portfolio: vbt.Portfolio) -> pd.DataFrame:
 
     stats = portfolio.stats(group_by=False).to_frame().T
 
-    # Ensure all required metrics are safely extracted, fallback to NaN
+    # Normalize percentage fields if missing
+    if "Total Return [%]" not in stats and "Total Return" in stats:
+        stats["Total Return [%]"] = stats["Total Return"] * 100
+
+    if "Max Drawdown [%]" not in stats and "Max Drawdown" in stats:
+        stats["Max Drawdown [%]"] = stats["Max Drawdown"] * 100
+
+    if "Exposure Time [%]" not in stats and "Exposure Time" in stats:
+        stats["Exposure Time [%]"] = stats["Exposure Time"] * 100
+
     metrics = pd.DataFrame(
         {
-            "Total Return": stats.get("Total Return [%]", np.nan),
+            "Total Return [%]": stats.get("Total Return [%]", np.nan),
             "Sharpe Ratio": stats.get("Sharpe Ratio", np.nan),
-            "Max Drawdown": stats.get("Max Drawdown [%]", np.nan),
-            "Win Rate": portfolio.trades.win_rate() * 100,
+            "Max Drawdown [%]": stats.get("Max Drawdown [%]", np.nan),
+            "Win Rate [%]": portfolio.trades.win_rate() * 100,
             "Expectancy": portfolio.trades.expectancy(),
-            "Exposure Time": stats.get("Exposure Time [%]", np.nan),
+            "Exposure Time [%]": stats.get("Exposure Time [%]", np.nan),
         }
     )
 
