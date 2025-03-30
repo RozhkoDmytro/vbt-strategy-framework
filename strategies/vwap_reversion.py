@@ -2,6 +2,9 @@ import pandas as pd
 import vectorbt as vbt
 import ta
 from strategies.base import StrategyBase
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VWAPReversionStrategy(StrategyBase):
@@ -17,8 +20,10 @@ class VWAPReversionStrategy(StrategyBase):
             volume=self.price_data["volume"],
             window=self.vwap_period,
         ).volume_weighted_average_price()
+        logger.debug(f"VWAP: {vwap.values}, Close: {self.price_data['close'].values}")
         entries = self.price_data["close"] < vwap * 0.98
         exits = self.price_data["close"] > vwap
+        logger.debug(f"Entries: {entries.values}, Exits: {exits.values}")
         signals = pd.DataFrame(index=self.price_data.index)
         signals["signal"] = 0
         signals.loc[entries, "signal"] = 1

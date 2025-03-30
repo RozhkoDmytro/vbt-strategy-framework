@@ -15,7 +15,7 @@ class Backtester:
         self.price_data = price_data
 
     def run(self):
-        logger.debug("Running generate_signals()")
+        logger.info("Running generate_signals()")
         signals = self.strategy.generate_signals()
 
         if signals is None or signals.empty:
@@ -32,9 +32,9 @@ class Backtester:
         )
         os.makedirs("logs", exist_ok=True)
         signals.to_csv(debug_path)
-        logger.debug(f"Signals saved to {debug_path}")
+        logger.info(f"Signals saved to {debug_path}")
 
-        logger.debug("Running portfolio simulation via VectorBT")
+        logger.info("Running portfolio simulation via VectorBT")
         portfolio = vbt.Portfolio.from_signals(
             close=self.price_data,
             entries=signals["signal"] == 1,
@@ -44,11 +44,11 @@ class Backtester:
             freq=config.timeframe,
         )
 
-        logger.debug("Portfolio simulation completed")
+        logger.info("Portfolio simulation completed")
         return portfolio
 
     def save_results(self, portfolio, strategy_name: str):
-        logger.debug("Saving portfolio metrics and equity curve")
+        logger.info("Saving portfolio metrics and equity curve")
 
         if portfolio is None:
             logger.warning("No portfolio to save results for")
@@ -66,7 +66,7 @@ class Backtester:
         os.makedirs("results", exist_ok=True)
         metrics_path = f"results/{strategy_name}_metrics.csv"
         metrics_df.to_csv(metrics_path, index=False)
-        logger.debug(f"Metrics saved to {metrics_path}")
+        logger.info(f"Metrics saved to {metrics_path}")
 
         try:
             # Використовуємо matplotlib для equity curve
@@ -80,6 +80,6 @@ class Backtester:
             os.makedirs("results/screenshots", exist_ok=True)
             plt.savefig(f"results/screenshots/{strategy_name}_equity.png")
             plt.close()
-            logger.debug(f"Equity curve saved for {strategy_name}")
+            logger.info(f"Equity curve saved for {strategy_name}")
         except Exception as e:
             logger.exception(f"Error saving equity curve: {e}")
