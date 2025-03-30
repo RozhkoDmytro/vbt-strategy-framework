@@ -4,6 +4,7 @@ from core.exchange_factory import ExchangeFactory
 from core.data_loader import DataLoader
 from core.backtester import Backtester
 from config import config
+import pandas as pd
 
 
 def setup_logging():
@@ -53,17 +54,25 @@ def setup_directories():
 
 
 def run_strategy(strategy):
-    """Run backtest for a single strategy and save results."""
+    """Run backtest for a given strategy instance and save results."""
     strategy_name = strategy.__class__.__name__
+
     try:
         logger.info(f"Starting backtest for {strategy_name}")
-        # Передаємо лише 'close' у Backtester
-        backtester = Backtester(strategy, strategy.price_data["close"])
+
+        # Select appropriate close price structure
+        if isinstance(strategy.price_data.columns, pd.MultiIndex):
+            # Extract close prices from MultiIndex DataFrame
+            close_price = strategy.price_data.xs("close", level="ohlcv", axis=1)
+        else:
+            close_price = strategy.price_data["close"]
+
+        # Run backtest
+        backtester = Backtester(strategy, close_price)
         portfolio = backtester.run()
 
         logger.info(f"Backtest completed for {strategy_name}, saving results")
         backtester.save_results(portfolio, strategy_name.lower())
-
         logger.info(f"Results saved successfully for {strategy_name}")
 
     except Exception as e:

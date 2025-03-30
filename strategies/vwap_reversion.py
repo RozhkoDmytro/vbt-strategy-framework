@@ -13,19 +13,45 @@ class VWAPReversionStrategy(StrategyBase):
         self.vwap_period = vwap_period
 
     def generate_signals(self) -> pd.DataFrame:
-        vwap = ta.volume.VolumeWeightedAveragePrice(
-            high=self.price_data["high"],
-            low=self.price_data["low"],
-            close=self.price_data["close"],
-            volume=self.price_data["volume"],
-            window=self.vwap_period,
-        ).volume_weighted_average_price()
-        logger.debug(f"VWAP: {vwap.values}, Close: {self.price_data['close'].values}")
-        entries = self.price_data["close"] < vwap * 0.98
-        exits = self.price_data["close"] > vwap
-        logger.debug(f"Entries: {entries.values}, Exits: {exits.values}")
         signals = pd.DataFrame(index=self.price_data.index)
-        signals["signal"] = 0
-        signals.loc[entries, "signal"] = 1
-        signals.loc[exits, "signal"] = -1
+
+        # Ensure MultiIndex structure
+        if not isinstance(self.price_data.columns, pd.MultiIndex):
+            raise ValueError("price_data must have MultiIndex columns")
+
+        # Iterate over available pairs
+        pairs = self.price_data.columns.get_level_values("pair").unique()
+        for pair in pairs:
+            try:
+                high = self.price_data[(pair, "high")]
+                low = self.price_data[(pair, "low")]
+                close = self.price_data[(pair, "close")]
+                volume = self.price_data[(pair, "volume")]
+
+                # Calculate VWAP
+                vwap = ta.volume.VolumeWeightedAveragePrice(
+                    high=high,
+                    low=low,
+                    close=close,
+                    volume=volume,
+                    window=self.vwap_period,
+                ).volume_weighted_average_price()
+
+                # Generate entry and exit signals
+                entries = close < vwap * 0.98
+                exits = close > vwap
+
+                # Store signals
+                signals[(pair, "signal")] = 0
+                signals.loc[entries, (pair, "signal")] = 1
+                signals.loc[exits, (pair, "signal")] = -1
+            except KeyError as e:
+                logger.warning(f"Missing data for {pair}: {e}")
+                continue
+
+        # Assign MultiIndex to signal columns
+        signals.columns = pd.MultiIndex.from_tuples(
+            signals.columns, names=["pair", "signal_type"]
+        )
+
         return signals

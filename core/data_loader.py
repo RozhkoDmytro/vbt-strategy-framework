@@ -116,4 +116,13 @@ class DataLoader:
             combined_df.to_parquet(self.data_path, compression="snappy")
             logger.info(f"Data saved to {self.data_path}")
 
+            # Save as CSV for debugging
+            csv_path = self.data_path.replace(".parquet", ".csv")
+            # Flatten MultiIndex for CSV
+            combined_df.columns = [
+                "_".join(col).strip() for col in combined_df.columns.values
+            ]
+            combined_df.to_csv(csv_path)
+            logger.info(f"Data also saved to {csv_path} for debugging")
+
         return combined_df
