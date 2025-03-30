@@ -55,38 +55,30 @@ def mock_price_data_entry_exit():
 
 @pytest.fixture
 def mock_vwap_price_data_no_signals():
-    data = {
-        ("TEST/BTC", "open"): [100.0, 100.5, 101.0, 100.5, 100.0],
-        ("TEST/BTC", "high"): [100.5, 101.0, 101.5, 101.0, 100.5],
-        ("TEST/BTC", "low"): [99.5, 100.0, 100.5, 100.0, 99.5],
-        ("TEST/BTC", "close"): [100.0, 100.5, 101.0, 100.5, 100.0],
-        ("TEST/BTC", "volume"): [100, 150, 200, 120, 180],
-    }
+    """Mock price data without any VWAP entry/exit signals."""
     index = pd.date_range("2025-01-01", periods=5, freq="1min")
-    df = pd.DataFrame(data, index=index)
-    df.columns.names = ["pair", "ohlcv"]
-    return df
+    columns = pd.MultiIndex.from_product(
+        [["TEST/BTC"], ["open", "high", "low", "close", "volume"]],
+        names=["pair", "ohlcv"],
+    )
+    data = [
+        [100.0, 100.5, 99.5, 100.0, 100],
+        [100.5, 101.0, 100.0, 100.5, 150],
+        [101.0, 101.5, 100.5, 101.0, 200],
+        [100.5, 101.0, 100.0, 100.5, 120],
+        [100.0, 100.5, 99.5, 100.0, 180],
+    ]
+    return pd.DataFrame(data, columns=columns, index=index)
 
 
 @pytest.fixture
 def mock_vwap_price_data_entry_exit():
-    """
-    A fixture that returns a DataFrame with sample price data
-    for testing the VWAP reversion strategy. The data simulates
-    entering and exiting trading signals.
-
-    The data includes open, high, low, close prices, and volume
-    for the trading pair "TEST/BTC" over a period of 5 minutes.
-
-    The DataFrame's index is a date range starting from "2025-01-01"
-    with a frequency of 1 minute.
-    """
     data = {
-        ("TEST/BTC", "open"): [100.0, 100.0, 95.0, 105.0, 100.0],
-        ("TEST/BTC", "high"): [100.5, 100.5, 95.5, 105.5, 100.5],
-        ("TEST/BTC", "low"): [99.5, 99.5, 94.5, 104.5, 99.5],
-        ("TEST/BTC", "close"): [100.0, 100.0, 95.0, 105.0, 100.0],
-        ("TEST/BTC", "volume"): [100, 150, 200, 120, 180],
+        ("TEST/BTC", "open"): [100, 100, 96, 106, 100],
+        ("TEST/BTC", "high"): [101, 101, 97, 107, 101],
+        ("TEST/BTC", "low"): [99, 99, 95, 105, 99],
+        ("TEST/BTC", "close"): [100, 100, 96, 106, 100],  # 96 < VWAP * 0.98, 106 > VWAP
+        ("TEST/BTC", "volume"): [100, 100, 200, 200, 100],
     }
     index = pd.date_range("2025-01-01", periods=5, freq="1min")
     df = pd.DataFrame(data, index=index)

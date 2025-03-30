@@ -44,7 +44,7 @@ def test_rsi_bb_generate_signals(
     )
     signals = strategy.generate_signals()
     assert len(signals) == len(mock_price_data2)
-    signal_values = signals[("TEST/BTC", "close")]
+    signal_values = signals[("TEST/BTC")]
     assert all(signal in [-1, 0, 1] for signal in signal_values)
     assert (
         signal_values.tolist() == expected_signals

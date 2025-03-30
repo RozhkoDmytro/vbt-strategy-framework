@@ -36,7 +36,7 @@ def test_backtester_run(mock_price_data1, strategy_class):
 
     strategy = strategy_class(mock_price_data1)
 
-    backtester = Backtester(strategy, mock_price_data1[("TEST/BTC", "close")])
+    backtester = Backtester(strategy, mock_price_data1)
 
     portfolio = backtester.run()
 

@@ -38,7 +38,7 @@ def test_sma_cross_generate_signals(
     assert len(signals) == len(
         price_data
     ), f"Expected {len(price_data)} rows, got {len(signals)}"
-    signal_values = signals[("TEST/BTC", "close")]
+    signal_values = signals[("TEST/BTC")]
     assert all(
         signal in [-1, 0, 1] for signal in signal_values
     ), f"Found invalid signal values: {signal_values.tolist()}"
