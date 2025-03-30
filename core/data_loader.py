@@ -1,11 +1,9 @@
 import os
 import pandas as pd
-import pyarrow.parquet as pq
 import logging
-from core.exchange import ExchangeBase
-from config import config
 import numpy as np
-
+from config import config
+from core.exchange import ExchangeBase
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -20,49 +18,51 @@ class DataLoader:
         """Validate the integrity of the OHLCV data."""
         required_cols = {"open", "high", "low", "close", "volume"}
 
-        # Remove infinite values and replace with NaN
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-        # Drop rows with NaN values
         df.dropna(inplace=True)
+        df = df[(df.select_dtypes(include=[np.number]) > 0).all(axis=1)]
 
-        # Ensure all prices and volumes are greater than 0
-        df = df[(df > 0).all(axis=1)]
-
-        # Check if dataframe is empty
         if df.empty:
             raise ValueError("Loaded data is empty")
 
-        # Check if index is datetime
         if not pd.api.types.is_datetime64_any_dtype(df.index):
             raise ValueError("Index must be datetime")
 
-        # Check for any missing values
         if df.isnull().any().any():
             raise ValueError("Data contains missing values")
 
-        # Handle validation for MultiIndex columns
-        if isinstance(df.columns, pd.MultiIndex):
-            # Get the unique column names from the second level (OHLCV)
-            cols = set(df.columns.get_level_values(1))
-        else:
-            cols = set(df.columns)
+        if not isinstance(df.columns, pd.MultiIndex):
+            raise ValueError(
+                "Data must have MultiIndex columns with levels ['pair', 'ohlcv']"
+            )
 
-        # Check if all required OHLCV columns are present
+        if df.columns.names != ["pair", "ohlcv"]:
+            raise ValueError(
+                f"Incorrect MultiIndex column names: {df.columns.names}, expected ['pair', 'ohlcv']"
+            )
+
+        cols = set(df.columns.get_level_values(1))
         if not required_cols.issubset(cols):
             missing_cols = required_cols - cols
-            available_cols = ", ".join(map(str, df.columns.tolist()))
-            raise ValueError(
-                f"Data must contain all OHLCV columns: {', '.join(missing_cols)}"
-                f"\nAvailable columns: {available_cols}"
-            )
+            raise ValueError(f"Missing OHLCV columns: {', '.join(missing_cols)}")
+
+        logger.info("Data validation passed. Shape: %s", df.shape)
         return df
 
     def load_data(self) -> pd.DataFrame:
         """Load or fetch OHLCV data for specified pairs and period."""
         if os.path.exists(self.data_path) and config.data_format == "parquet":
             logger.info(f"Loading cached data from {self.data_path}")
-            df = pq.read_table(self.data_path).to_pandas()
+            df = pd.read_parquet(self.data_path)
+
+            if not isinstance(df.columns, pd.MultiIndex):
+                df.columns = pd.MultiIndex.from_tuples(df.columns)
+            if df.columns.names != ["pair", "ohlcv"]:
+                df.columns.set_names(["pair", "ohlcv"], inplace=True)
+
+            logger.debug("Loaded data columns: %s", df.columns)
+            logger.debug("Loaded data index type: %s", df.index.dtype)
+
             self._validate_data(df)
             return df
 
@@ -75,6 +75,7 @@ class DataLoader:
                     pair, config.timeframe, config.start_date, config.end_date
                 )
                 data[pair] = df
+                logger.info(f"Fetched {pair} with shape {df.shape}")
             except ValueError as e:
                 logger.warning(f"Skipping {pair}: {e}")
                 continue
@@ -82,11 +83,12 @@ class DataLoader:
         if not data:
             raise ValueError("No valid data fetched from exchange")
 
-        # Use only keys from data for pd.concat
-
-        combined_df = pd.concat(
-            data.values(), axis=1, keys=data.keys(), names=["pair", "ohlcv"]
+        combined_df = pd.concat(data.values(), axis=1, keys=data.keys())
+        combined_df.columns = pd.MultiIndex.from_tuples(
+            combined_df.columns, names=["pair", "ohlcv"]
         )
+
+        logger.debug("Combined DataFrame head:\n%s", combined_df.head())
 
         combined_df = self._validate_data(combined_df)
 
@@ -94,7 +96,11 @@ class DataLoader:
         if config.data_format == "parquet":
             combined_df.to_parquet(self.data_path, compression="snappy")
             logger.info(f"Data saved to {self.data_path}")
-        else:
-            raise ValueError(f"Unsupported data format: {config.data_format}")
+
+        csv_path = os.path.splitext(self.data_path)[0] + ".csv"
+        flat_df = combined_df.copy()
+        flat_df.columns = ["_".join(col) for col in flat_df.columns.to_flat_index()]
+        flat_df.to_csv(csv_path)
+        logger.info(f"Flattened data saved to {csv_path} for external analysis")
 
         return combined_df

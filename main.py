@@ -5,6 +5,18 @@ from core.data_loader import DataLoader
 from core.backtester import Backtester
 from config import config
 
+
+def setup_logging():
+    """Ensure logs directory exists and configure logging."""
+    os.makedirs("logs", exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
+    )
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,6 +73,8 @@ def run_strategy(strategy):
 
 def main():
     """Run the backtesting framework."""
+
+    setup_logging()
     try:
         exchange = initialize_exchange()
         price_data = load_price_data(exchange)
