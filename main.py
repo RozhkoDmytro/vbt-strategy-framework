@@ -22,11 +22,7 @@ def main():
         # Instantiate strategies with price data (full OHLCV for strategies)
         strategies = []
         for strategy_cls in config.strategies:
-            if getattr(strategy_cls, "requires_ohlcv", False):
-                strategies.append(strategy_cls(price_data))  # Full OHLCV
-            else:
-                close_data = price_data.xs("close", level="ohlcv", axis=1)
-                strategies.append(strategy_cls(close_data))  # Only close
+            strategies.append(strategy_cls(price_data))  # Full OHLCV
 
         for strategy in strategies:
             run_strategy(strategy)

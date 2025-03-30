@@ -44,13 +44,11 @@ class RSIBBStrategy(StrategyBase):
             A DataFrame with the same index and columns as the price data, containing
             the generated trading signals: 1 for buy, -1 for sell, and 0 for hold.
         """
+        close_df = self.get_close_price()
+        signals = pd.DataFrame(index=close_df.index, columns=close_df.columns, data=0)
 
-        signals = pd.DataFrame(
-            index=self.price_data.index, columns=self.price_data.columns, data=0
-        )
-
-        for symbol in self.price_data.columns:
-            close = self.price_data[symbol]
+        for symbol in close_df.columns:
+            close = close_df[symbol]
             logger.debug(f"Processing {symbol}")
 
             rsi = ta.momentum.RSIIndicator(close, window=self.rsi_period).rsi()
@@ -65,4 +63,5 @@ class RSIBBStrategy(StrategyBase):
             signals.loc[exits, symbol] = -1
 
         logger.debug(f"Generated signals:\n{signals}")
+        signals = self.normalize_signals(signals)
         return signals

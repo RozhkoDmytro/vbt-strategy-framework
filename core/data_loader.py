@@ -123,6 +123,62 @@ class DataLoader:
             missing_cols = required_cols - cols
             raise ValueError(f"Missing OHLCV columns: {', '.join(missing_cols)}")
 
+    def _filter_low_quality_assets(
+        self,
+        df: pd.DataFrame,
+        price_threshold: float = 1e-6,
+        zero_volume_ratio: float = 0.9,
+    ) -> pd.DataFrame:
+        """
+        Remove trading pairs with low close prices or consistently zero volume.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            MultiIndex column DataFrame with OHLCV data.
+        price_threshold : float
+            Minimum acceptable close price (inclusive lower bound).
+        zero_volume_ratio : float
+            Maximum allowed ratio of zero-volume rows before excluding the asset.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered DataFrame with low-quality assets removed.
+        """
+        valid_pairs = []
+        all_pairs = df.columns.get_level_values("pair").unique()
+
+        for pair in all_pairs:
+            close = df[(pair, "close")]
+            volume = df[(pair, "volume")]
+
+            # Check for very low prices
+            low_price_mask = close <= price_threshold
+
+            # Check for excessive zero volume
+            zero_volume_mask = volume == 0
+            zero_volume_ratio_actual = zero_volume_mask.sum() / len(volume)
+
+            if low_price_mask.any():
+                logger.debug(f"[FILTER] {pair}: contains close <= {price_threshold}")
+            if zero_volume_ratio_actual > zero_volume_ratio:
+                logger.debug(
+                    f"[FILTER] {pair}: {zero_volume_ratio_actual:.2%} zero-volume rows"
+                )
+
+            if (
+                not low_price_mask.any()
+                and zero_volume_ratio_actual <= zero_volume_ratio
+            ):
+                valid_pairs.append(pair)
+
+        filtered_df = df.loc[:, df.columns.get_level_values("pair").isin(valid_pairs)]
+        logger.info(
+            f"[FILTER] Kept {len(valid_pairs)} valid pairs out of {len(all_pairs)}"
+        )
+        return filtered_df
+
     def _validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Validate loaded data by applying filters and checks.
@@ -151,6 +207,7 @@ class DataLoader:
         df = self._replace_infinite_values(df)
         df = self._fill_missing_values(df)
         df = self._filter_negative_close(df)
+        df = self._filter_low_quality_assets(df)
 
         logger.info(f"[VALIDATION] Shape after filtering: {df.shape}")
 

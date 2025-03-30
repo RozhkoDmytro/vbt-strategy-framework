@@ -43,16 +43,24 @@ class Backtester:
         signals.to_csv(debug_path)
         logger.info(f"Signals saved to {debug_path}")
 
+        close = self.price_data.xs("close", level="ohlcv", axis=1)
         logger.info("Running portfolio simulation via VectorBT")
         try:
+            entries = (signals == 1).astype(bool)
+            exits = (signals == -1).astype(bool)
+
+            assert entries.index.equals(close.index)
+            assert entries.columns.equals(close.columns)
+
             portfolio = vbt.Portfolio.from_signals(
-                close=self.price_data,
-                entries=signals == 1,
-                exits=signals == -1,
-                fees=config.commission,
-                slippage=config.slippage,
+                close=close,
+                entries=entries,
+                exits=exits,
+                fees=float(config.commission),
+                slippage=float(config.slippage),
                 freq=config.timeframe,
             )
+
             logger.info("Portfolio simulation completed")
             return portfolio
         except Exception as e:
