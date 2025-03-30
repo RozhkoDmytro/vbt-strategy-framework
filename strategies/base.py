@@ -5,6 +5,8 @@ from core.metrics import calculate_metrics
 
 
 class StrategyBase(ABC):
+    requires_ohlcv: bool = False
+
     def __init__(self, price_data: pd.DataFrame):
         self.price_data = price_data
 

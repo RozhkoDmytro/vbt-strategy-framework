@@ -82,6 +82,7 @@ class DataLoader:
         if os.path.exists(self.data_path) and config.data_format == "parquet":
             logger.info(f"Loading cached data from {self.data_path}")
             df = pq.read_table(self.data_path).to_pandas()
+            logger.debug(f"Loaded columns: {df.columns}")
             df = self._validate_data(df)
             return df
 
@@ -119,10 +120,9 @@ class DataLoader:
             # Save as CSV for debugging
             csv_path = self.data_path.replace(".parquet", ".csv")
             # Flatten MultiIndex for CSV
-            combined_df.columns = [
-                "_".join(col).strip() for col in combined_df.columns.values
-            ]
-            combined_df.to_csv(csv_path)
+            flat_df = combined_df.copy()
+            flat_df.columns = ["_".join(col).strip() for col in flat_df.columns.values]
+            flat_df.to_csv(csv_path)
             logger.info(f"Data also saved to {csv_path} for debugging")
 
         return combined_df

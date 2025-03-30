@@ -37,9 +37,7 @@ def load_price_data(exchange):
     data_loader = DataLoader(exchange)
     try:
         price_data = data_loader.load_data()
-        first_pair = price_data.columns.get_level_values(0)[0]  # Наприклад, 'IOTA/BTC'
-        price_data = price_data[first_pair]  # Отримуємо OHLCV для першої пари
-        logger.info(f"Data loaded successfully for pair: {first_pair}")
+        logger.info(f"Data loaded successfully: {price_data.shape[1]} symbols")
         return price_data
     except ValueError as e:
         logger.error(f"Failed to load data: {e}")
@@ -60,15 +58,7 @@ def run_strategy(strategy):
     try:
         logger.info(f"Starting backtest for {strategy_name}")
 
-        # Select appropriate close price structure
-        if isinstance(strategy.price_data.columns, pd.MultiIndex):
-            # Extract close prices from MultiIndex DataFrame
-            close_price = strategy.price_data.xs("close", level="ohlcv", axis=1)
-        else:
-            close_price = strategy.price_data["close"]
-
-        # Run backtest
-        backtester = Backtester(strategy, close_price)
+        backtester = Backtester(strategy, strategy.price_data)
         portfolio = backtester.run()
 
         logger.info(f"Backtest completed for {strategy_name}, saving results")
@@ -91,7 +81,13 @@ def main():
         setup_directories()
 
         # Instantiate strategies with price data (повні OHLCV для стратегій)
-        strategies = [strategy(price_data) for strategy in config.strategies]
+        strategies = []
+        for strategy_cls in config.strategies:
+            if getattr(strategy_cls, "requires_ohlcv", False):
+                strategies.append(strategy_cls(price_data))  # Full OHLCV
+            else:
+                close_data = price_data.xs("close", level="ohlcv", axis=1)
+                strategies.append(strategy_cls(close_data))  # Only close
 
         for strategy in strategies:
             run_strategy(strategy)

@@ -1,18 +1,22 @@
+import numpy as np
+import pandas as pd
 import vectorbt as vbt
-import logging
-
-logger = logging.getLogger(__name__)
 
 
-def calculate_metrics(portfolio: vbt.Portfolio) -> dict:
-    """Calculate performance metrics from a portfolio."""
-    stats = portfolio.stats()
-    logger.debug(f"Available stats keys: {list(stats.keys())}")
-    return {
-        "total_return": stats.get("Total Return [%]", 0.0),
-        "sharpe_ratio": stats.get("Sharpe Ratio", 0.0),
-        "sortino_ratio": stats.get("Sortino Ratio", 0.0),
-        "max_drawdown": stats.get("Max Drawdown [%]", 0.0),
-        "calmar_ratio": stats.get("Calmar Ratio", 0.0),
-        "win_rate": stats.get("Win Rate [%]", 0.0),
-    }
+def calculate_metrics(portfolio: vbt.Portfolio) -> pd.DataFrame:
+    # Get stats per column (per symbol)
+    stats = portfolio.stats(group_by=False).to_frame().T
+
+    # Ensure all required metrics are safely extracted, fallback to NaN
+    metrics = pd.DataFrame(
+        {
+            "Total Return": stats.get("Total Return [%]", np.nan),
+            "Sharpe Ratio": stats.get("Sharpe Ratio", np.nan),
+            "Max Drawdown": stats.get("Max Drawdown [%]", np.nan),
+            "Win Rate": portfolio.trades.win_rate() * 100,
+            "Expectancy": portfolio.trades.expectancy(),
+            "Exposure Time": stats.get("Exposure Time [%]", np.nan),
+        }
+    )
+
+    return metrics

@@ -16,27 +16,26 @@ class SMACrossStrategy(StrategyBase):
         self.slow_period = slow_period
 
     def generate_signals(self) -> pd.DataFrame:
-        close_data = self.price_data["close"]
-        logger.debug(f"Close data for SMA: {close_data.values}")
-
-        fast_sma = ta.trend.SMAIndicator(
-            close_data, window=self.fast_period
-        ).sma_indicator()
-        slow_sma = ta.trend.SMAIndicator(
-            close_data, window=self.slow_period
-        ).sma_indicator()
-        logger.debug(f"Fast SMA: {fast_sma.values}, Slow SMA: {slow_sma.values}")
-
-        entries = fast_sma > slow_sma
-        exits = fast_sma < slow_sma
-        logger.debug(
-            f"Entries (fast_sma > slow_sma): {entries.values}, Exits (fast_sma < slow_sma): {exits.values}"
+        signals = pd.DataFrame(
+            index=self.price_data.index, columns=self.price_data.columns, data=0
         )
 
-        signals = pd.DataFrame(index=self.price_data.index)
-        signals["signal"] = 0
-        signals.loc[entries, "signal"] = 1
-        signals.loc[exits, "signal"] = -1
-        logger.debug(f"Generated signals: {signals['signal'].values}")
+        for symbol in self.price_data.columns:
+            close = self.price_data[symbol]
+            logger.debug(f"Processing {symbol}")
 
+            fast_sma = ta.trend.SMAIndicator(
+                close, window=self.fast_period
+            ).sma_indicator()
+            slow_sma = ta.trend.SMAIndicator(
+                close, window=self.slow_period
+            ).sma_indicator()
+
+            entries = fast_sma > slow_sma
+            exits = fast_sma < slow_sma
+
+            signals.loc[entries, symbol] = 1
+            signals.loc[exits, symbol] = -1
+
+        logger.debug(f"Generated SMA signals:\n{signals}")
         return signals
