@@ -1,0 +1,7 @@
+vectorbt
+pandas
+numpy
+plotly
+pyarrow
+ccxt
+pytest
