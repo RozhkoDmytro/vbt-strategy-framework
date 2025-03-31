@@ -2,6 +2,8 @@ import pandas as pd
 import ccxt
 from core.exchange import ExchangeBase
 import logging
+import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +65,7 @@ class BinanceExchange(ExchangeBase):
             ohlcv = self.exchange.fetch_ohlcv(
                 symbol, timeframe, since=since, limit=None, params={"until": until}
             )
-            if not ohlcv:  # Перевірка на порожній список
+            if not ohlcv:
                 raise ValueError(f"No data returned for {symbol}")
             df = pd.DataFrame(
                 ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
@@ -76,6 +78,70 @@ class BinanceExchange(ExchangeBase):
         except (ccxt.NetworkError, ccxt.ExchangeError, ValueError) as e:
             logger.error(f"Error fetching data for {symbol}: {e}")
             raise ValueError(f"Failed to fetch data for {symbol}: {e}")
+
+    def fetch_full_ohlcv(self, pair, timeframe, start, end, delay_seconds=1):
+        """
+        Paginated OHLCV fetch using 'since' timestamps.
+        """
+        import ccxt
+
+        all_data = []
+        since = pd.Timestamp(start).timestamp() * 1000
+        end_ts = pd.Timestamp(end).timestamp() * 1000
+
+        logger.info(
+            f"[{pair}] Starting paginated fetch from {start} to {end} (timeframe={timeframe})"
+        )
+
+        while since < end_ts:
+            try:
+                logger.debug(
+                    f"[{pair}] Fetching with since={pd.to_datetime(since, unit='ms')}"
+                )
+
+                ohlcv = self.exchange.fetch_ohlcv(
+                    pair, timeframe, since=int(since), limit=1000
+                )
+                if not ohlcv:
+                    logger.warning(f"[{pair}] Empty fetch. Stopping.")
+                    break
+
+                df = pd.DataFrame(
+                    ohlcv,
+                    columns=["timestamp", "open", "high", "low", "close", "volume"],
+                )
+                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+                df.set_index("timestamp", inplace=True)
+
+                all_data.append(df)
+
+                last_ts = df.index.max().value // 10**6
+                next_since = last_ts + 60_000
+                if next_since <= since:
+                    logger.warning(
+                        f"[{pair}] Stuck pagination at {pd.to_datetime(since, unit='ms')}. Breaking."
+                    )
+                    break
+
+                since = next_since
+                time.sleep(delay_seconds)
+
+            except ccxt.NetworkError as e:
+                logger.warning(f"[{pair}] Network error: {e}")
+                time.sleep(5)
+            except Exception as e:
+                logger.warning(f"[{pair}] Unexpected error: {e}")
+                break
+
+        if all_data:
+            result = pd.concat(all_data)
+            logger.info(
+                f"[{pair}] Finished fetch: {len(result)} rows from {result.index.min()} to {result.index.max()}"
+            )
+            return result
+
+        logger.warning(f"[{pair}] No data fetched.")
+        return pd.DataFrame()
 
     def get_top_pairs(self, base_currency: str, limit: int) -> list[str]:
         """

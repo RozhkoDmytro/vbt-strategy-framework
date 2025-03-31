@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from core.metrics import calculate_metrics
 from config import config
 import glob
+import plotly.graph_objs as go
+import plotly.io as pio
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,7 @@ class Backtester:
         self._save_metrics(portfolio, strategy_name)
         self._save_equity_curve(portfolio, strategy_name)
         self._save_heatmap(portfolio, strategy_name)
+        self._save_interactive_report(portfolio, strategy_name)
 
     def _save_metrics(self, portfolio, strategy_name: str):
         """Calculate and save portfolio metrics as CSV."""
@@ -127,6 +130,34 @@ class Backtester:
             logger.info(f"Heatmap saved to {path}")
         except Exception:
             logger.exception("Error saving heatmap")
+
+    def _save_interactive_report(self, portfolio, strategy_name: str):
+        """Generate and save an interactive HTML report."""
+        try:
+            total_equity = portfolio.value().sum(axis=1)
+
+            fig_equity = go.Figure()
+            fig_equity.add_trace(
+                go.Scatter(
+                    x=total_equity.index,
+                    y=total_equity.values,
+                    mode="lines",
+                    name="Total Equity",
+                )
+            )
+            fig_equity.update_layout(
+                title=f"Equity Curve - {strategy_name}",
+                xaxis_title="Time",
+                yaxis_title="Equity",
+            )
+
+            # Зберегти як HTML
+            os.makedirs("results/html", exist_ok=True)
+            path = f"results/html/{strategy_name}_report.html"
+            pio.write_html(fig_equity, file=path, auto_open=False)
+            logger.info(f"Interactive report saved to {path}")
+        except Exception:
+            logger.exception("Error saving interactive HTML report")
 
     @classmethod
     def compare_strategies_metrics(

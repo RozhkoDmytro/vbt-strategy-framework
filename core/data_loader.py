@@ -250,14 +250,24 @@ class DataLoader:
         data = {}
         for pair in pairs:
             try:
-                df = self.exchange.fetch_ohlcv(
-                    pair, config.timeframe, config.start_date, config.end_date
+                logger.info(
+                    f"Loading data is from {config.start_date} to {config.end_date}"
+                )
+                df = self.exchange.fetch_full_ohlcv(
+                    pair,
+                    config.timeframe,
+                    config.start_date,
+                    config.end_date,
+                    config.fetch_delay_seconds,
                 )
                 df.columns = pd.MultiIndex.from_product(
                     [[pair], df.columns], names=["pair", "ohlcv"]
                 )
                 data[pair] = df
                 logger.debug(f"Fetched {pair} with shape {df.shape}")
+                logger.info(
+                    f"{pair} has {len(df)} rows, from {df.index.min()} to {df.index.max()}"
+                )
             except ValueError as e:
                 logger.warning(f"Skipping {pair}: {e}")
                 continue
