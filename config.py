@@ -11,13 +11,13 @@ class Config:
     # Exchange settings
     exchange_name: str = "binance"
     base_currency: str = "BTC"
-    num_pairs: int = 10
+    num_pairs: int = 100
     timeframe: str = "1m"
 
     # Data period
     start_date: str = "2025-02-01"
-    end_date: str = "2025-02-03"
-    fetch_delay_seconds: int = 1  # delay between paginated API requests
+    end_date: str = "2025-02-28"
+    fetch_delay_seconds: int = 0.5  # delay between paginated API requests
 
     # Backtest parameters
     commission: float = 0.001  # 0.1%
