@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from strategies.sma_cross import SMACrossStrategy
 from strategies.rsi_bb import RSIBBStrategy
 from strategies.vwap_reversion import VWAPReversionStrategy
+from strategies.volume_spike_breakout import VolumeSpikeBreakoutStrategy
 from exchanges.binance import BinanceExchange
 
 
@@ -39,7 +40,12 @@ class Config:
     def __post_init__(self):
         """Initialize strategies and supported exchanges with default values."""
         if self.strategies is None:
-            self.strategies = [SMACrossStrategy, RSIBBStrategy, VWAPReversionStrategy]
+            self.strategies = [
+                SMACrossStrategy,
+                RSIBBStrategy,
+                VWAPReversionStrategy,
+                VolumeSpikeBreakoutStrategy,
+            ]
         if self.supported_exchanges is None:
             self.supported_exchanges = {"binance": BinanceExchange}
 

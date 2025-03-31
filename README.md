@@ -76,11 +76,18 @@ Or... maybe I made a mistake somewhere. 🙂
 - **Buy**: Price falls 2% below VWAP.
 - **Sell**: Price returns to VWAP.
 
+### VolumeSpikeBreakoutStrategy
+- **Logic**: Breakout detection after volume surge.
+- **Buy**: Price breaks recent high with volume > 2× average.
+- **Sell**: Price drops below recent low.
+
 ## Conclusions and Performance
 - **VWAPReversionStrategy**: Best performance, near 0% or slightly positive.
+- **VolumeSpikeBreakoutStrategy**: ~ -0.5% return.
 - **SMACrossStrategy**: ~ -1% return.
 - **RSIBBStrategy**: ~ -2% return.
 - **Image**: `results/screenshots/strategy_comparison_total_return.png` shows performance comparison.
+
 
 ## Project Context and Structure
 

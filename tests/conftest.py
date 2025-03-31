@@ -141,3 +141,22 @@ def mock_price_data1():
     df[("TEST/BTC", "close")] = base_price + (spread * np.random.uniform(-1, 1, 5))
     df[("TEST/BTC", "volume")] = np.random.randint(100, 1000, size=5)
     return df
+
+
+@pytest.fixture
+def mock_price_data_volume_spike():
+    """
+    Test dataset designed to trigger a volume spike breakout signal
+    on the final bar (index 4).
+    """
+    data = {
+        ("TEST/BTC", "open"): [100, 101, 102, 103, 105],
+        ("TEST/BTC", "high"): [101, 102, 103, 104, 115],
+        ("TEST/BTC", "low"): [99, 100, 101, 102, 104],
+        ("TEST/BTC", "close"): [100, 101, 102, 104, 114],  # breakout at end
+        ("TEST/BTC", "volume"): [100, 90, 110, 90, 400],  # volume spike at end
+    }
+    index = pd.date_range("2025-01-01", periods=5, freq="1min")
+    df = pd.DataFrame(data, index=index)
+    df.columns.names = ["pair", "ohlcv"]
+    return df
