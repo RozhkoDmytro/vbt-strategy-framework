@@ -37,7 +37,7 @@ This chart presents a comparison of the **Total Return [%]** for each trading st
 
 ### 🔍 Interpretation of Results:
 
-- **Y-axis**: Strategy names  (`SMACrossStrategy`, `RSIBBStrategy`, `VWAPReversionStrategy`)
+- **Y-axis**: Strategy names  (`SMACrossStrategy`, `VolumeSpikeBreakoutStrategy`, `RSIBBStrategy`, `VWAPReversionStrategy`)
 - **X-axis**: Total return percentage (`Total Return [%]`)
 
 A longer bar to the **left** indicates a **larger loss**.  
@@ -45,9 +45,10 @@ Positive values to the **right** would indicate profit (none in this case).
 
 ### 📊 Observations:
 
-- `SMACrossStrategy` performed the worst, with a return of approximately **-7.5%**.
-- `RSIBBStrategy` showed **moderate losses**, around **-2%**.
-- `VWAPReversionStrategy` was the **least unprofitable**, returning approximately **-0.2%**, i.e., almost breakeven.
+- `SMACrossStrategy` performed the worst, with a return of approximately **-95%**.
+- `VolumeSpikeBreakoutStrategy` performed the worst, with a return of approximately **-70%**.
+- `RSIBBStrategy` showed **moderate losses**, around **-40%**.
+- `VWAPReversionStrategy` was the **least unprofitable**, returning approximately **-10%**, i.e., almost breakeven.
 
 ### ✅ Conclusion:
 
