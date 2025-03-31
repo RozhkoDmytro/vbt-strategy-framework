@@ -96,7 +96,7 @@ Or... maybe I made a mistake somewhere. 🙂
 | Path               | Description                                 |
 | ------------------ | ------------------------------------------- |
 | `core/`            | Data loader, backtester, exchange, metrics. |
-| `exchanges`        | Exchange classs (Binance, ect).             |
+| `exchanges/`        | Exchange classs (Binance, ect).             |
 | `strategies/`      | Strategy classes (SMA, RSI+BB, VWAP).       |
 | `tests/`           | Unit tests.                                 |
 | `data/`            | Cached OHLCV data.                          |
