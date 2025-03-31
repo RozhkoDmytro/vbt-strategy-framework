@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from strategies.sma_cross import SMACrossStrategy
 from strategies.rsi_bb import RSIBBStrategy
 from strategies.vwap_reversion import VWAPReversionStrategy
-from core.exchanges.binance import BinanceExchange
+from exchanges.binance import BinanceExchange
 
 
 @dataclass

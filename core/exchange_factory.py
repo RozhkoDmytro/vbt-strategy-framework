@@ -1,4 +1,4 @@
-from core.exchange import ExchangeBase
+from .exchange import ExchangeBase
 from config import config
 
 
